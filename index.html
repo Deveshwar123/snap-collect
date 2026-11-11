@@ -3,109 +3,249 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<title>Help train a finger-snap detector</title>
+<meta name="color-scheme" content="dark">
+<title>Snap Match</title>
 <style>
-:root{--bg:#f6f6f8;--card:#fff;--fg:#16161a;--mut:#5a5a66;--line:#d6d6de;--acc:#4f46e5;--accfg:#fff;--ok:#127a3d;--bad:#b3261e;--warn:#fff3cd;--warnfg:#5c4400}
-@media (prefers-color-scheme:dark){:root{--bg:#0f0f13;--card:#1a1a21;--fg:#f2f2f6;--mut:#a5a5b3;--line:#35353f;--acc:#8b85ff;--accfg:#0f0f13;--ok:#4cd98a;--bad:#ff8a80;--warn:#3a2f0a;--warnfg:#ffe08a}}
+:root{--bg:#0b0b12;--card:#171722;--fg:#f4f4fa;--mut:#a7a7ba;--line:#33334a;--acc:#ffd23f;--accfg:#14141c;--tgt:#4de1ff;--att:#ff4fa3;--ok:#4cd98a;--bad:#ff8a80;--warn:#3a2f0a;--warnfg:#ffe08a}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:max(16px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
 main{max-width:520px;margin:0 auto}
-h1{font-size:1.6rem;line-height:1.2;margin:8px 0 6px}
+h1{font-size:2rem;line-height:1.15;margin:8px 0 6px}
 .sub{color:var(--mut);margin:0 0 18px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
 label.f{display:block;font-weight:600;margin-bottom:6px}
 input[type=text]{width:100%;min-height:48px;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .chk{display:flex;gap:12px;align-items:flex-start;padding:10px 0;min-height:44px;font-size:.95rem}
 .chk input{width:28px;height:28px;flex:none;margin:0;accent-color:var(--acc)}
-button,.btn{font:inherit;font-weight:600;min-height:48px;min-width:48px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent}
-button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+button{font:inherit;font-weight:700;min-height:52px;min-width:48px;padding:10px 18px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent}
+button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-size:1.2rem;width:100%;min-height:60px}
 button:disabled{opacity:.45;cursor:not-allowed}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-.slot{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--bg)}
-.slot.done{border-color:var(--ok)}
-.slot h3{margin:0 0 8px;font-size:1rem;display:flex;justify-content:space-between;align-items:center}
-.slot .tick{color:var(--ok);font-size:1.3rem}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.row>button{flex:1 1 120px}
-.big{font-size:2.4rem;font-weight:800;text-align:center;padding:6px 0;color:var(--acc)}
-.msg{font-size:.92rem;margin:8px 0 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.row>button{flex:1 1 140px}
+.msg{font-size:.95rem;margin:8px 0 0;min-height:1.4em}
 .msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
 .banner{background:var(--warn);color:var(--warnfg);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:600}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .mut{color:var(--mut);font-size:.9rem}
-.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}
-.bar>i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+.note{color:var(--mut);font-size:.8rem;text-align:center;margin-top:18px}
 [hidden]{display:none!important}
 details summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.tag{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--mut);font-size:.9rem;font-weight:600}
+.chip{min-height:44px;padding:4px 12px;font-size:.85rem;border-radius:999px;font-weight:600}
+.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.bad{color:var(--bad);border-color:var(--bad)}
+.count{font-size:5rem;font-weight:900;text-align:center;line-height:1.1;min-height:1.1em;color:var(--acc)}
+.lab{text-align:center;font-weight:700;margin:4px 0}
+canvas.ring{width:100%;max-width:320px;aspect-ratio:1;display:block;margin:0 auto}
+canvas.spark{width:100%;max-width:320px;height:56px;display:block;margin:6px auto 0}
+.leg{display:flex;justify-content:center;gap:16px;font-size:.8rem;color:var(--mut)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.score{font-size:4.5rem;font-weight:900;text-align:center;line-height:1.05;color:var(--att)}
+.verdict{font-size:1.5rem;font-weight:800;text-align:center;min-height:1.6em}
+.verdict.perfect{color:var(--acc)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;text-align:center;margin:10px 0}
+.stats b{display:block;font-size:2rem;line-height:1.1}
+.stars{font-size:2.4rem;text-align:center;letter-spacing:6px;color:var(--acc)}
+.dots{display:flex;justify-content:center;gap:10px;margin:8px 0}
+.dots i{width:22px;height:22px;border-radius:50%;border:2px solid var(--line)}
+.dots i.on{background:var(--acc);border-color:var(--acc)}
+.master{font-size:1.4rem;font-weight:800;text-align:center;color:var(--acc);margin:10px 0}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:49}
+#flash.go{animation:fl .35s ease-out}
+@keyframes fl{0%{opacity:.55}100%{opacity:0}}
+.pts{font-size:1.6rem;font-weight:800;text-align:center;color:var(--acc);min-height:1.9em}
+.lb ol{margin:6px 0 0;padding-left:1.6em}.lb li{padding:3px 0}.lb li b{color:var(--acc)}.lb li span.p{float:right;font-weight:700}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 </style>
 </head>
 <body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="flash" aria-hidden="true"></div>
+<div id="live" class="sr" aria-live="polite"></div>
 <main>
-<h1>Help train a finger-snap detector &#x1FAF0;</h1>
-<p class="sub">A personal project. Takes 1 minute: record 3 finger snaps.</p>
-
 <div id="igBanner" class="banner" role="alert" hidden>Instagram's browser can't use the microphone. Tap &#x22EF; (top right) &rarr; Open in browser.</div>
 <div id="micBanner" class="banner" role="alert" hidden></div>
 
-<form id="form" novalidate autocomplete="off">
-  <div class="card">
-    <label class="f" for="name">Name or nickname</label>
-    <input type="text" id="name" maxlength="40" required autocomplete="off" autocapitalize="words">
-    <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
-    <label class="chk"><input type="checkbox" id="consent" required><span>I agree my snap recordings can be used to train a finger-snap detector for a personal project. I can ask for them to be deleted anytime by DM.</span></label>
-    <label class="chk"><input type="checkbox" id="age" required><span>I'm 13 or older</span></label>
-  </div>
-
-  <div class="card" id="part1">
-    <div id="slots1"></div>
+<section id="start">
+  <h1>Snap Match &#x1FAF0;</h1>
+  <p class="sub">Snap once. Then match it. Can you hit 3 perfect snaps in a row?</p>
+  <form id="form" novalidate autocomplete="off">
+    <div class="card">
+      <label class="f" for="name">Name or nickname</label>
+      <input type="text" id="name" maxlength="40" required autocomplete="off" autocapitalize="words">
+      <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+      <label class="chk"><input type="checkbox" id="consent" required><span>I agree my snap recordings can be used to train a finger-snap detector for a personal project. I can ask for them to be deleted anytime by DM.</span></label>
+      <label class="chk"><input type="checkbox" id="age" required><span>I'm 13 or older</span></label>
+      <label class="chk"><input type="checkbox" id="lbOpt" checked><span>Show my nickname on the leaderboard<br><small class="mut">Only your nickname and points are shown</small></span></label>
+    </div>
+    <button type="submit" class="pri" id="startBtn" disabled>Start</button>
+  </form>
+  <section class="card lb" id="lbBox1" hidden><strong>&#x1F3C6; Leaderboard</strong><ol id="lbList1"></ol></section>
+  <div class="card" style="margin-top:14px">
     <details id="upBox">
       <summary>Upload a recording instead</summary>
-      <p class="mut">Pick up to 3 short audio/video files, or one file with 3 snaps (max 15 s, 1.5 MB each).</p>
+      <p class="mut">Pick up to 3 short audio/video files, or one file with 3 snaps (max 15 s, 1.5 MB each). Uploads are not scored.</p>
       <input type="file" id="upFile" accept="audio/*,video/*" multiple aria-label="Upload a recording instead">
       <p class="msg" id="upMsg" role="status"></p>
     </details>
   </div>
+</section>
 
+<section id="stage" hidden>
   <div class="card">
-    <button type="submit" class="pri" id="submit1" style="width:100%" disabled>Submit my snaps</button>
-    <div class="bar" id="bar1" hidden><i></i></div>
-    <p class="msg" id="status1" role="status" aria-live="polite"></p>
+    <div class="tag"><span id="roundTag"></span><span id="total" aria-live="polite">0 pts</span><button type="button" id="chip" class="chip" hidden></button></div>
+    <div id="count" class="count" aria-hidden="true"></div>
+    <div id="ringBox" hidden>
+      <div class="lab" id="ringLab"></div>
+      <canvas id="ring" class="ring" role="img" aria-label="Snap fingerprint ring chart"></canvas>
+      <canvas id="spark" class="spark" role="img" aria-label="Snap decay comparison"></canvas>
+      <div class="leg"><span><i style="background:var(--tgt)"></i>Target</span><span id="legAtt"><i style="background:var(--att)"></i>You</span></div>
+    </div>
+    <div id="score" class="score" hidden>0</div>
+    <div id="ptsEl" class="pts" aria-hidden="true"></div>
+    <div id="verdict" class="verdict"></div>
+    <p class="msg" id="gmsg"></p>
+    <div class="row"><button type="button" class="pri" id="mainBtn">Ready</button></div>
   </div>
-</form>
+</section>
+
+<section id="end" class="card" hidden>
+  <h2 style="margin:0 0 4px" id="endTitle">Round complete</h2>
+  <div class="stars" id="stars" role="img"></div>
+  <div class="stats">
+    <div><b id="stAvg">0</b><span class="mut">Average</span></div>
+    <div><b id="stBest">0</b><span class="mut">Best</span></div>
+    <div><b id="stPts">0</b><span class="mut">Round pts</span></div>
+    <div><b id="stStreak">0</b><span class="mut">Perfect streak</span></div>
+  </div>
+  <div class="mut" style="text-align:center">Goal: 3 PERFECT snaps in a row</div>
+  <div class="dots" id="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="master" id="master" hidden>You're a snap master &#x1F3C6;</div>
+  <div class="row"><button type="button" class="pri" id="againBtn" style="flex:2 1 200px">Play again</button><button type="button" id="doneBtn">I'm done</button></div>
+  <p class="msg" id="endMsg"></p>
+  <section class="card lb" id="lbBox2" hidden><strong>&#x1F3C6; Leaderboard</strong><ol id="lbList2"></ol></section>
+  <div style="text-align:center"><button type="button" id="chip2" class="chip" hidden></button></div>
+</section>
 
 <section id="thanks" class="card" hidden>
   <h2 style="margin-top:0">Thanks! &#x1F64C;</h2>
-  <p class="mut">Got 10 more seconds? Add 3 more snaps (optional).</p>
-  <button type="button" id="moreBtn" class="pri" style="width:100%">Add 3 more snaps</button>
+  <p id="thanksTxt" class="mut"></p>
+  <div style="text-align:center"><button type="button" id="chip3" class="chip" hidden></button></div>
 </section>
 
-<section id="part2" class="card" hidden>
-  <div id="slots2"></div>
-  <button type="button" id="submit2" class="pri" style="width:100%" disabled>Submit 3 more</button>
-  <div class="bar" id="bar2" hidden><i></i></div>
-  <p class="msg" id="status2" role="status" aria-live="polite"></p>
-</section>
-
-<section id="done2" class="card" hidden><h2 style="margin:0">Thanks again! &#x1F64C;</h2></section>
+<p class="note">Your snaps help train a finger-snap detector (personal project). The match score is just for fun.</p>
 </main>
 
 <script>
 const ENDPOINT = "https://script.google.com/macros/s/AKfycbzEXqY2EdT8jIxfJ7chIA4r0LmKkDWbuJvtJQ8fIimfYCH58SK-56D8GhN-mdv27WrZBA/exec";
 
-const MAX_BYTES = 1.5 * 1024 * 1024, MAX_UPLOAD_S = 15, REC_S = 3;
+const MAX_BYTES = 1.5 * 1024 * 1024, MAX_UPLOAD_S = 15, REC_S = 3, MAX_ROUNDS = 6, SNAPS_PER_ROUND = 3;
+const GOOD_MIN = 80, PERFECT_MIN = 90, GOOD_PTS = 1, PERFECT_PTS = 2, BONUS_STREAK = 3, BONUS_PTS = 5, LB_TOP = 10;
 const IN_IG = /Instagram/i.test(navigator.userAgent);
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const reduced = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 const submissionId = (crypto.randomUUID ? crypto.randomUUID() :
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c=="x"?r:(r&3|8)).toString(16); }));
-
-// slots: 0-2 part 1, 3-5 part 2. {blob,mime,dur,check,done,covered,url}
-const slots = Array.from({length: 6}, () => ({done:false}));
-let busy = false, ac = null, sent1 = false;
 const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
+let ac = null, busy = false;
 
+// ==SCORING-START==
+const CFG = {
+  W_SPEC: 0.65, W_DECAY: 0.35, CURVE: 1.5,
+  NB: 32, FMIN: 300, FMAX: 8000, N: 1024, HOP: 256, NFR: 4,
+  PRE_MS: 10, POST_MS: 150, DEC_FRAMES: 16, DEC_MS: 8, DEC_FLOOR: -40, FLOOR_REL: 0.01
+};
+function fftInPlace(re, im){
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++){
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j){ let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  for (let len = 2; len <= n; len <<= 1){
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), h = len >> 1;
+    for (let i = 0; i < n; i += len){
+      let cr = 1, ci = 0;
+      for (let k = 0; k < h; k++){
+        const a = i + k, b = a + h;
+        const xr = re[b]*cr - im[b]*ci, xi = re[b]*ci + im[b]*cr;
+        re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi;
+        const t = cr*wr - ci*wi; ci = cr*wi + ci*wr; cr = t;
+      }
+    }
+  }
+}
+function findOnset(x, sr){
+  const fl = Math.max(1, Math.round(sr * 0.005)), nF = Math.floor(x.length / fl);
+  if (nF < 2) return 0;
+  const en = new Float64Array(nF);
+  for (let f = 0; f < nF; f++){ let s = 0; for (let i = f*fl; i < (f+1)*fl; i++) s += x[i]*x[i]; en[f] = s / fl; }
+  const W = 10; // previous 50 ms
+  let best = 0, bf = 1;
+  for (let f = 1; f < nF; f++){
+    let m = 0, c = 0;
+    for (let k = Math.max(0, f-W); k < f; k++){ m += en[k]; c++; }
+    const jump = en[f] - m / c;
+    if (jump > best){ best = jump; bf = f; }
+  }
+  // refine to the first clearly-loud sample around the winning frame
+  const a = Math.max(0, (bf-1)*fl), b = Math.min(x.length, (bf+1)*fl);
+  let pk = 0; for (let i = a; i < b; i++) pk = Math.max(pk, Math.abs(x[i]));
+  for (let i = a; i < b; i++) if (Math.abs(x[i]) >= 0.2 * pk) return i;
+  return bf * fl;
+}
+function snapFeatures(x, sr){
+  const C = CFG, onset = findOnset(x, sr);
+  const pre = Math.round(sr * C.PRE_MS / 1000), post = Math.round(sr * C.POST_MS / 1000);
+  const s0 = Math.max(0, onset - pre), seg = new Float32Array(pre + post); // zero-padded past the end
+  for (let i = 0; i < seg.length; i++){ const j = s0 + i; if (j < x.length) seg[i] = x[j]; }
+  const o = onset - s0; // onset index inside seg
+  // (a) spectral shape
+  const N = C.N, re = new Float64Array(N), im = new Float64Array(N), mag = new Float64Array(N/2);
+  for (let f = 0; f < C.NFR; f++){
+    const st = o + f * C.HOP;
+    for (let i = 0; i < N; i++){ const j = st + i; re[i] = (j < seg.length ? seg[j] : 0) * (0.5 - 0.5*Math.cos(2*Math.PI*i/(N-1))); im[i] = 0; }
+    fftInPlace(re, im);
+    for (let k = 0; k < N/2; k++) mag[k] += Math.hypot(re[k], im[k]) / C.NFR;
+  }
+  const binHz = sr / N, ratio = Math.pow(C.FMAX / C.FMIN, 1 / C.NB), band = new Float64Array(C.NB);
+  for (let b = 0; b < C.NB; b++){
+    const lo = C.FMIN * Math.pow(ratio, b), hi = lo * ratio;
+    const k0 = Math.ceil(lo / binHz), k1 = Math.min(N/2 - 1, Math.ceil(hi / binHz) - 1);
+    if (k1 >= k0){ let s = 0; for (let k = k0; k <= k1; k++) s += mag[k]; band[b] = s / (k1 - k0 + 1); }
+    else { const p = Math.sqrt(lo*hi) / binHz, k = Math.min(N/2 - 2, Math.floor(p)), t = p - k; band[b] = mag[k]*(1-t) + mag[k+1]*t; }
+  }
+  let mx = 0; for (let b = 0; b < C.NB; b++) mx = Math.max(mx, band[b]);
+  const vec = new Float32Array(C.NB); let mean = 0;
+  for (let b = 0; b < C.NB; b++){ vec[b] = Math.log(band[b] + C.FLOOR_REL * mx + 1e-12); mean += vec[b] / C.NB; }
+  for (let b = 0; b < C.NB; b++) vec[b] -= mean;
+  // (b) decay envelope
+  const df = Math.max(1, Math.round(sr * C.DEC_MS / 1000)), rms = new Float64Array(C.DEC_FRAMES); let pkr = 1e-12;
+  for (let f = 0; f < C.DEC_FRAMES; f++){
+    let s = 0; for (let i = 0; i < df; i++){ const j = o + f*df + i; const v = j < seg.length ? seg[j] : 0; s += v*v; }
+    rms[f] = Math.sqrt(s / df); pkr = Math.max(pkr, rms[f]);
+  }
+  const dec = new Float32Array(C.DEC_FRAMES);
+  for (let f = 0; f < C.DEC_FRAMES; f++) dec[f] = clamp(20 * Math.log10(rms[f] / pkr + 1e-9), C.DEC_FLOOR, 0);
+  return {vec, dec};
+}
+function snapScore(a, b){
+  const C = CFG; let d = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.vec.length; i++){ d += a.vec[i]*b.vec[i]; na += a.vec[i]**2; nb += b.vec[i]**2; }
+  const spectral = (na > 0 && nb > 0) ? d / Math.sqrt(na*nb) : 0;
+  let diff = 0; for (let i = 0; i < a.dec.length; i++) diff += Math.abs(a.dec[i] - b.dec[i]);
+  const decay = clamp(1 - (diff / a.dec.length) / -C.DEC_FLOOR, 0, 1);
+  const raw = clamp(C.W_SPEC * Math.max(0, spectral) + C.W_DECAY * decay, 0, 1);
+  return {spectral, decay, raw: Math.round(100*raw), score: Math.round(100 * Math.pow(raw, C.CURVE))};
+}
+// ==SCORING-END==
+
+// ---------- audio ----------
 function ensureAC(){ // must be called inside a user gesture (iOS)
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return null;
@@ -113,144 +253,6 @@ function ensureAC(){ // must be called inside a user gesture (iOS)
   if (ac.state === "suspended") ac.resume();
   return ac;
 }
-
-// ---------- UI build ----------
-function buildSlots(container, start){
-  for (let i = 0; i < 3; i++){
-    const n = start + i;
-    const d = document.createElement("div");
-    d.className = "slot"; d.id = "slot" + n;
-    d.innerHTML = `<h3><span>Snap ${n+1}</span><span class="tick" hidden aria-label="Snap detected">&#10003;</span></h3>
-      <div class="big" hidden aria-live="assertive"></div>
-      <div class="row">
-        <button type="button" class="rec pri">Record</button>
-        <button type="button" class="play" hidden>&#9654; Play</button>
-        <button type="button" class="redo" hidden>Redo</button>
-      </div>
-      <div class="row keepRow" hidden><button type="button" class="keep">Keep anyway</button></div>
-      <p class="msg" role="status"></p>`;
-    container.appendChild(d);
-    d.querySelector(".rec").onclick = () => record(n);
-    d.querySelector(".redo").onclick = () => record(n);
-    d.querySelector(".play").onclick = () => play(n);
-    d.querySelector(".keep").onclick = () => keepAnyway(n);
-  }
-}
-buildSlots($("slots1"), 0);
-buildSlots($("slots2"), 3);
-
-function ui(n){
-  const d = $("slot" + n), s = slots[n];
-  d.classList.toggle("done", !!s.done);
-  d.querySelector(".tick").hidden = !(s.done && s.check);
-  d.querySelector(".play").hidden = !s.blob;
-  d.querySelector(".redo").hidden = !(s.blob || s.covered);
-  d.querySelector(".rec").hidden = !!(s.blob || s.covered);
-  d.querySelector(".keepRow").hidden = !(s.blob && !s.done);
-  if (s.covered){ setMsg(n, "Covered by your uploaded file.", "ok"); }
-  refresh();
-}
-function setMsg(n, t, cls){ const m = $("slot" + n).querySelector(".msg"); m.textContent = t || ""; m.className = "msg " + (cls || ""); }
-function setBig(n, t){ const b = $("slot" + n).querySelector(".big"); b.hidden = !t; b.textContent = t || ""; }
-function lockButtons(on){ document.querySelectorAll(".slot button").forEach(b => { if (on) b.disabled = true; else b.disabled = false; }); }
-
-function part1Ready(){ return $("name").value.trim() && $("consent").checked && $("age").checked && slots.slice(0,3).every(s => s.done); }
-function part2Ready(){ return slots.slice(3).every(s => s.done); }
-function refresh(){
-  $("submit1").disabled = busy || sent1 || !part1Ready();
-  $("submit2").disabled = busy || !part2Ready();
-}
-["name","consent","age"].forEach(id => $(id).addEventListener("input", refresh));
-
-// ---------- banners ----------
-if (IN_IG) $("igBanner").hidden = false;
-function micProblem(msg){
-  const b = $("micBanner");
-  b.textContent = msg; b.hidden = false;
-  $("upBox").open = true;
-}
-if (!hasMic){
-  if (IN_IG) { /* IG banner already shown */ }
-  else micProblem("This browser can't record audio. Use \"Upload a recording instead\" below.");
-  document.querySelectorAll(".rec").forEach(b => b.disabled = true);
-}
-
-// ---------- recording ----------
-function pickMime(){
-  const c = ["audio/webm;codecs=opus", "audio/mp4"];
-  for (const m of c) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
-  return "";
-}
-
-async function record(n){
-  if (busy) return;
-  ensureAC(); // inside gesture
-  busy = true; lockButtons(true);
-  const s = slots[n];
-  let stream = null;
-  try {
-    setMsg(n, "");
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
-    } catch (e) {
-      try { stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
-      catch (e2) { throw Object.assign(new Error("mic"), {mic:true, name:e2.name}); }
-    }
-    const mt = pickMime();
-    const rec = new MediaRecorder(stream, mt ? {mimeType: mt} : undefined);
-    const chunks = [];
-    rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
-    const stopped = new Promise(res => rec.onstop = res);
-    for (const c of ["3","2","1"]) { setBig(n, c); await sleep(800); }
-    setBig(n, "Snap now!");
-    rec.start();
-    await sleep(REC_S * 1000);
-    if (rec.state !== "inactive") rec.stop();
-    await stopped;
-    setBig(n, "");
-    const mime = rec.mimeType || mt || (chunks[0] && chunks[0].type) || "audio/mp4";
-    const blob = new Blob(chunks, {type: mime});
-    if (revoke(s)) {}
-    Object.assign(s, {blob, mime, dur: REC_S, covered:false, done:false, check:false, url:URL.createObjectURL(blob)});
-    if (blob.size > MAX_BYTES) { slots[n] = {done:false}; ui(n); setMsg(n, "Recording too large. Try again.", "bad"); return; }
-    setMsg(n, "Checking…");
-    const ok = await detectSnap(blob).catch(() => false);
-    s.check = ok;
-    if (ok) { s.done = true; setMsg(n, "Snap detected!", "ok"); }
-    else setMsg(n, "Didn't catch a snap — try again a bit closer", "bad");
-    ui(n);
-  } catch (e) {
-    setBig(n, "");
-    if (e.mic) {
-      const denied = e.name === "NotAllowedError" || e.name === "SecurityError";
-      micProblem(IN_IG ? "Instagram's browser can't use the microphone. Tap ⋯ (top right) → Open in browser."
-        : denied ? "Microphone access was blocked. Allow it in your browser settings, or use \"Upload a recording instead\"."
-        : "Couldn't use the microphone. Try \"Upload a recording instead\" below.");
-      setMsg(n, "Microphone unavailable.", "bad");
-    } else setMsg(n, "Recording failed. Please try again.", "bad");
-  } finally {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    busy = false; lockButtons(false); ui(n);
-  }
-}
-function revoke(s){ if (s.url) { URL.revokeObjectURL(s.url); return true; } return false; }
-
-function keepAnyway(n){
-  const s = slots[n]; if (!s.blob) return;
-  s.done = true; s.check = false;
-  setMsg(n, "Kept (no snap detected).", "");
-  ui(n);
-}
-
-let playing = null;
-function play(n){
-  const s = slots[n]; if (!s.url) return;
-  if (playing) { playing.pause(); }
-  playing = new Audio(s.url);
-  playing.play().catch(() => setMsg(n, "Can't play this on your device.", "bad"));
-}
-
-// ---------- snap detection ----------
 async function decode(blob){
   const c = ensureAC();
   if (!c) throw new Error("no AudioContext");
@@ -259,6 +261,13 @@ async function decode(blob){
     const p = c.decodeAudioData(buf, res, rej); // callback form for old Safari
     if (p && p.catch) p.catch(rej);
   });
+}
+function mono(audio){
+  const n = audio.numberOfChannels, x = audio.getChannelData(0);
+  if (n < 2) return x;
+  const out = new Float32Array(x.length);
+  for (let c = 0; c < n; c++){ const d = audio.getChannelData(c); for (let i = 0; i < out.length; i++) out[i] += d[i] / n; }
+  return out;
 }
 function analyze(audio){
   const x = audio.getChannelData(0), sr = audio.sampleRate;
@@ -279,34 +288,335 @@ function analyze(audio){
   }
   return false;
 }
-async function detectSnap(blob){ return analyze(await decode(blob)); }
-
-// ---------- file upload fallback ----------
-$("upFile").addEventListener("change", async ev => {
-  const files = Array.from(ev.target.files || []).slice(0, 3);
-  const msg = $("upMsg"); msg.className = "msg"; msg.textContent = "";
-  if (!files.length) return;
-  ensureAC();
-  busy = true; refresh();
+function pickMime(){
+  for (const m of ["audio/webm;codecs=opus", "audio/mp4"]) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+  return "";
+}
+async function recordClip(){ // countdown + 3.0 s recording; always stops mic tracks
+  let stream = null;
   try {
-    const out = [];
-    for (const f of files){
-      if (f.size > MAX_BYTES) throw new Error(`"${f.name}" is over 1.5 MB. Please trim it.`);
-      let dur = null, ok = false;
-      try { const a = await decode(f); dur = a.duration; ok = analyze(a); } catch (e) { dur = await mediaDuration(f); }
-      if (dur == null) throw new Error(`Couldn't read "${f.name}".`);
-      if (dur > MAX_UPLOAD_S) throw new Error(`"${f.name}" is longer than 15 seconds.`);
-      out.push({blob:f, mime:f.type || "audio/mp4", dur:Math.round(dur*10)/10, check:ok});
+    try { stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}}); }
+    catch (e) {
+      try { stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+      catch (e2) { throw Object.assign(new Error("mic"), {mic:true, name:e2.name}); }
     }
-    for (let i = 0; i < 3; i++){ revoke(slots[i]); slots[i] = {done:false}; }
-    out.forEach((o, i) => { slots[i] = {...o, done:true, url:URL.createObjectURL(o.blob)}; });
-    if (out.length === 1) { slots[1] = {done:true, covered:true}; slots[2] = {done:true, covered:true}; }
-    else for (let i = out.length; i < 3; i++) slots[i] = {done:true, covered:true}; // fewer files than slots
-    for (let i = 0; i < 3; i++) { ui(i); setMsg(i, slots[i].covered ? "Covered by your uploaded file(s)." : "Uploaded.", "ok"); }
-    msg.textContent = "Loaded " + out.length + " file(s)."; msg.className = "msg ok";
-  } catch (e) { msg.textContent = e.message; msg.className = "msg bad"; }
-  busy = false; refresh();
+    const mt = pickMime();
+    const rec = new MediaRecorder(stream, mt ? {mimeType: mt} : undefined);
+    const chunks = [];
+    rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    const stopped = new Promise(res => rec.onstop = res);
+    for (const c of ["3","2","1"]) { $("count").textContent = c; await sleep(800); }
+    $("count").textContent = "Snap!";
+    rec.start();
+    await sleep(REC_S * 1000);
+    if (rec.state !== "inactive") rec.stop();
+    await stopped;
+    $("count").textContent = "";
+    const mime = rec.mimeType || mt || (chunks[0] && chunks[0].type) || "audio/mp4";
+    return {blob: new Blob(chunks, {type: mime}), mime};
+  } finally { if (stream) stream.getTracks().forEach(t => t.stop()); }
+}
+
+// ---------- session state ----------
+const S = {target:null, rounds:[], clipIdx:0, streak:0, mastered:false, points:0};
+try { S.streak = parseInt(sessionStorage.getItem("snapStreak") || "0", 10) || 0; } catch (e) {}
+function saveStreak(){ try { sessionStorage.setItem("snapStreak", String(S.streak)); } catch (e) {} }
+function show(id){ ["start","stage","end","thanks"].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); }
+function say(t){ $("live").textContent = ""; setTimeout(() => $("live").textContent = t, 30); }
+
+// ---------- start screen ----------
+if (IN_IG) $("igBanner").hidden = false;
+function micProblem(msg){ $("micBanner").textContent = msg; $("micBanner").hidden = false; $("upBox").open = true; }
+if (!hasMic && !IN_IG) micProblem("This browser can't record audio. Use \"Upload a recording instead\" below.");
+function formOk(){ return !!($("name").value.trim() && $("consent").checked && $("age").checked); }
+function refresh(){ $("startBtn").disabled = busy || !hasMic || !formOk(); }
+["name","consent","age"].forEach(id => $(id).addEventListener("input", refresh));
+refresh();
+$("form").addEventListener("submit", ev => {
+  ev.preventDefault();
+  if ($("startBtn").disabled) return;
+  ensureAC(); // inside the Start tap
+  runGame();
 });
+
+// ---------- drawing ----------
+const RING_SCALE = 6; // log-spectrum units mapped across the ring radius
+function fit(cv){
+  const d = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w*d) || cv.height !== Math.round(h*d)){ cv.width = Math.round(w*d); cv.height = Math.round(h*d); }
+  const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h);
+  return {g, w, h};
+}
+function ringPath(g, cx, cy, vec, rmin, rmax, p){
+  const n = vec.length, P = [];
+  for (let i = 0; i < n; i++){
+    const e = clamp(0.5 + vec[i] / RING_SCALE, 0, 1), r = rmin + (rmax - rmin) * e * p, a = -Math.PI/2 + 2*Math.PI*i/n;
+    P.push([cx + r*Math.cos(a), cy + r*Math.sin(a)]);
+  }
+  g.beginPath();
+  g.moveTo((P[n-1][0]+P[0][0])/2, (P[n-1][1]+P[0][1])/2);
+  for (let i = 0; i < n; i++){ const q = P[(i+1) % n]; g.quadraticCurveTo(P[i][0], P[i][1], (P[i][0]+q[0])/2, (P[i][1]+q[1])/2); }
+  g.closePath();
+}
+function drawRing(att, p){
+  const {g, w, h} = fit($("ring")), cx = w/2, cy = h/2, rmin = Math.min(w, h) * 0.12, rmax = Math.min(w, h) * 0.48;
+  g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = 1;
+  g.beginPath(); g.arc(cx, cy, rmin + (rmax-rmin)*0.5, 0, 7); g.stroke();
+  if (S.target){
+    g.save(); g.shadowColor = "#4de1ff"; g.shadowBlur = 14; g.strokeStyle = "#4de1ff"; g.lineWidth = 3;
+    ringPath(g, cx, cy, S.target.vec, rmin, rmax, 1); g.stroke(); g.restore();
+  }
+  if (att){
+    ringPath(g, cx, cy, att.vec, rmin, rmax, p);
+    g.fillStyle = "rgba(255,79,163,.42)"; g.fill(); g.strokeStyle = "#ff4fa3"; g.lineWidth = 2; g.stroke();
+  }
+}
+function drawSpark(att){
+  const {g, w, h} = fit($("spark"));
+  const line = (dec, col) => {
+    g.beginPath(); g.strokeStyle = col; g.lineWidth = 2.5;
+    dec.forEach((v, i) => { const x = 4 + (w-8) * i / (dec.length-1), y = 4 + (h-8) * (v / CFG.DEC_FLOOR); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke();
+  };
+  if (S.target) line(S.target.dec, "#4de1ff");
+  if (att) line(att.dec, "#ff4fa3");
+}
+function animateRing(att){
+  if (reduced()){ drawRing(att, 1); drawSpark(att); return Promise.resolve(); }
+  return new Promise(res => {
+    const t0 = performance.now();
+    (function step(t){
+      const p = clamp((t - t0) / 400, 0, 1), e = 1 - Math.pow(1 - p, 3);
+      drawRing(att, e);
+      if (p < 1) requestAnimationFrame(step); else { drawSpark(att); res(); }
+    })(t0);
+  });
+}
+function countUp(to){
+  const el = $("score"); el.hidden = false;
+  if (reduced() || to === 0){ el.textContent = to; return Promise.resolve(); }
+  return new Promise(res => {
+    const t0 = performance.now();
+    (function step(t){
+      const p = clamp((t - t0) / 700, 0, 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1 - p, 2)));
+      if (p < 1) requestAnimationFrame(step); else res();
+    })(t0);
+  });
+}
+function confetti(){
+  if (reduced()) return;
+  const cv = $("fx"), d = window.devicePixelRatio || 1, w = innerWidth, h = innerHeight;
+  cv.width = w*d; cv.height = h*d;
+  const g = cv.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0);
+  const cols = ["#ffd23f","#ff4fa3","#4de1ff","#4cd98a","#fff"];
+  const ps = Array.from({length: 120}, () => ({x:w/2, y:h*0.4, vx:(Math.random()-0.5)*14, vy:-Math.random()*14-3, s:4+Math.random()*6, c:cols[Math.random()*cols.length|0], r:Math.random()*6}));
+  const t0 = performance.now();
+  (function step(t){
+    const el = t - t0; g.clearRect(0, 0, w, h);
+    ps.forEach(p => { p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.r += 0.2; g.save(); g.globalAlpha = clamp(1 - el/1900, 0, 1); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-p.s/2, -p.s/3, p.s, p.s*0.66); g.restore(); });
+    if (el < 1900) requestAnimationFrame(step); else g.clearRect(0, 0, w, h);
+  })(t0);
+}
+function flash(){
+  if (reduced()) return;
+  const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+}
+
+// ---------- uploads ----------
+function b64(blob){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] || "");
+    r.onerror = rej; r.readAsDataURL(blob);
+  });
+}
+async function postRound(R){
+  if ($("website").value) return true; // honeypot: pretend success
+  const clips = [];
+  for (const c of R.clips)
+    clips.push({index: c.index, mime: c.mime, base64: await b64(c.blob), duration_s: c.dur, snap_check: !!c.check, match_score: c.score, round: R.n});
+  const payload = {
+    submission_id: submissionId, name: $("name").value.trim().slice(0, 40), consent: true, age_ok: true, clips,
+    ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "",
+    lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, client_ts: new Date().toISOString(), part: R.n,
+    round_points: R.points || 0, session_points: R.sessionPoints != null ? R.sessionPoints : S.points, show_on_leaderboard: $("lbOpt").checked
+  };
+  if (ENDPOINT.indexOf("PASTE_") === 0) throw new Error("This form isn't connected to a backend yet.");
+  const resp = await fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(payload)});
+  const j = await resp.json();
+  if (!j || !j.ok) throw new Error((j && j.error) || "Server said no.");
+  return true;
+}
+async function uploadRound(R){ // background; never blocks the UI
+  if (R.status === "sending" || R.status === "retry") return;
+  R.status = "sending"; chips();
+  for (let t = 0; t < 3; t++){
+    try { await postRound(R); R.status = "ok"; R.clips.forEach(c => c.blob = null); chips(); setTimeout(loadLB, 2000); return; }
+    catch (e) { if (t < 2) { R.status = "retry"; chips(); await sleep(2000 * (t + 1)); R.status = "sending"; } }
+  }
+  R.status = "failed"; chips();
+}
+function chips(){
+  const st = S.rounds.map(r => r.status);
+  let txt = "", cls = "chip", on = st.length > 0;
+  if (st.includes("failed")) { txt = "not saved: tap to retry"; cls += " bad"; }
+  else if (st.includes("retry")) txt = "retrying…";
+  else if (st.includes("sending") || st.includes("pending")) txt = "saving…";
+  else { txt = "saved ✓"; cls += " ok"; }
+  ["chip","chip2","chip3"].forEach(id => { const c = $(id); c.hidden = !on; c.textContent = txt; c.className = cls; });
+}
+["chip","chip2","chip3"].forEach(id => $(id).onclick = () => S.rounds.filter(r => r.status === "failed").forEach(uploadRound));
+
+// ---------- leaderboard (GET, names via textContent only) ----------
+async function loadLB(){
+  try {
+    const resp = await fetch(ENDPOINT + "?action=leaderboard");
+    const j = await resp.json();
+    if (!j || !j.ok || !Array.isArray(j.top) || !j.top.length) throw new Error("none");
+    const me = $("name").value.trim().toLowerCase();
+    ["1","2"].forEach(k => {
+      const ol = $("lbList" + k); ol.textContent = "";
+      j.top.slice(0, LB_TOP).forEach(e => {
+        const li = document.createElement("li"), nm = document.createElement("span"), p = document.createElement("span");
+        nm.textContent = String(e.name == null ? "" : e.name).slice(0, 40); p.className = "p"; p.textContent = Number(e.points) || 0;
+        if (me && nm.textContent.trim().toLowerCase() === me) li.style.fontWeight = "800", nm.textContent += " (you)", li.style.color = "var(--acc)";
+        li.append(nm, p); ol.appendChild(li);
+      });
+      $("lbBox" + k).hidden = false;
+    });
+  } catch (e) { $("lbBox1").hidden = true; $("lbBox2").hidden = true; }
+}
+loadLB();
+
+// ---------- game ----------
+function tap(label, sec){ // resolves when the main button is tapped
+  const b = $("mainBtn"); b.textContent = label; b.hidden = false; b.disabled = false;
+  return new Promise(res => { b.onclick = () => { ensureAC(); b.hidden = true; res(); }; });
+}
+function setVerdict(t, cls){ const v = $("verdict"); v.textContent = t; v.className = "verdict " + (cls || ""); }
+function verdictFor(s){ return s >= 90 ? ["PERFECT!", "perfect"] : s >= 80 ? ["Great match!", ""] : s >= 60 ? ["Close!", ""] : ["Keep trying", ""]; }
+
+async function capture(){ // -> {blob,mime,feat} | {retry:msg}
+  let rec;
+  try { rec = await recordClip(); }
+  catch (e) {
+    if (e.mic) {
+      const denied = e.name === "NotAllowedError" || e.name === "SecurityError";
+      micProblem(IN_IG ? "Instagram's browser can't use the microphone. Tap ⋯ (top right) → Open in browser."
+        : denied ? "Microphone access was blocked. Allow it in your browser settings, or use \"Upload a recording instead\"."
+        : "Couldn't use the microphone. Try \"Upload a recording instead\".");
+      throw e;
+    }
+    return {retry: "Recording failed. Please try again."};
+  }
+  if (rec.blob.size > MAX_BYTES) return {retry: "Recording too large. Try again."};
+  $("count").textContent = "…";
+  try {
+    const audio = await decode(rec.blob);
+    if (!analyze(audio)) { $("count").textContent = ""; return {retry: "Didn't catch a snap. Try again a bit closer, with one clear snap."}; }
+    $("count").textContent = "";
+    return {blob: rec.blob, mime: rec.mime, feat: snapFeatures(mono(audio), audio.sampleRate)};
+  } catch (e) { $("count").textContent = ""; return {retry: "Couldn't read that recording. Please try again."}; }
+}
+
+async function runGame(){
+  if (busy) return; busy = true; refresh();
+  show("stage");
+  try {
+    while (S.rounds.length < MAX_ROUNDS){
+      const done = await playRound();
+      if (done === "quit") break;
+      const again = await endScreen();
+      if (!again) break;
+      show("stage");
+    }
+  } catch (e) { show("start"); }
+  finally { busy = false; refresh(); }
+  if (!$("start").hidden) return;
+  finishSession();
+}
+
+async function playRound(){
+  const R = {n: S.rounds.length + 1, clips: [], scores: [], status: "pending", points: 0};
+  S.rounds.push(R); chips();
+  $("score").hidden = true; setVerdict("");
+  for (let i = 1; i <= SNAPS_PER_ROUND; i++){
+    const isTarget = !S.target;
+    $("roundTag").textContent = `Round ${R.n} of ${MAX_ROUNDS} · Snap ${i} of ${SNAPS_PER_ROUND}`;
+    $("gmsg").textContent = ""; $("gmsg").className = "msg"; $("score").hidden = true; setVerdict(""); $("ptsEl").textContent = "";
+    $("ringLab").textContent = S.target ? "Match the target" : "";
+    $("ringBox").hidden = !S.target;
+    if (S.target){ drawRing(null, 1); drawSpark(null); }
+    let res, label = isTarget ? "Record your target snap" : "Ready, snap!";
+    for (;;){
+      await tap(label);
+      $("gmsg").textContent = ""; $("score").hidden = true; setVerdict("");
+      res = await capture();
+      if (!res.retry) break;
+      $("gmsg").textContent = res.retry; $("gmsg").className = "msg bad"; label = "Try again";
+    }
+    const clip = {index: ++S.clipIdx, mime: res.mime, blob: res.blob, dur: REC_S, check: true, score: null};
+    if (isTarget){
+      S.target = res.feat; R.clips.push(clip);
+      $("ringBox").hidden = false; $("ringLab").textContent = "Your target snap"; $("legAtt").hidden = true;
+      await animateRing(null); drawSpark(null);
+      setVerdict("Target locked in", "");
+      say("Target snap recorded. Now match it.");
+    } else {
+      $("legAtt").hidden = false;
+      const sc = snapScore(S.target, res.feat).score;
+      clip.score = sc; R.clips.push(clip); R.scores.push(sc);
+      $("ringLab").textContent = "Your snap vs the target";
+      const [vt, vc] = verdictFor(sc);
+      await Promise.all([animateRing(res.feat), countUp(sc)]);
+      setVerdict(vt, vc);
+      S.streak = sc >= PERFECT_MIN ? S.streak + 1 : 0; saveStreak();
+      let pts = sc >= PERFECT_MIN ? PERFECT_PTS : sc >= GOOD_MIN ? GOOD_PTS : 0;
+      const bonus = S.streak === BONUS_STREAK ? BONUS_PTS : 0;
+      R.points += pts + bonus; S.points += pts + bonus;
+      $("ptsEl").textContent = (pts + bonus) ? "+" + (pts + bonus) + (bonus ? " (incl. +" + bonus + " streak bonus!)" : "") : "";
+      $("total").textContent = S.points + " pts";
+      say(`Score ${sc}. ${vt}.` + (pts + bonus ? ` Plus ${pts + bonus} points.` : ""));
+      if (sc >= 90){ confetti(); flash(); try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} }
+    }
+    await tap(i < SNAPS_PER_ROUND ? "Next" : "See results");
+  }
+  R.sessionPoints = S.points;
+  uploadRound(R); // fire and forget
+  return "ok";
+}
+
+function endScreen(){
+  const R = S.rounds[S.rounds.length - 1], sc = R.scores;
+  const avg = sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : 0, best = sc.length ? Math.max(...sc) : 0;
+  const stars = avg >= 80 ? 3 : avg >= 60 ? 2 : 1;
+  $("endTitle").textContent = `Round ${R.n} complete`;
+  $("stars").textContent = "★".repeat(stars) + "☆".repeat(3 - stars);
+  $("stars").setAttribute("aria-label", stars + " of 3 stars");
+  $("stAvg").textContent = avg; $("stBest").textContent = best; $("stPts").textContent = "+" + R.points; $("stStreak").textContent = S.streak;
+  [...$("dots").children].forEach((d, i) => d.classList.toggle("on", i < S.streak));
+  const win = S.streak >= 3, fresh = win && !S.mastered;
+  $("master").hidden = !win;
+  const last = S.rounds.length >= MAX_ROUNDS;
+  $("againBtn").hidden = last;
+  $("endMsg").textContent = last ? "That's the max of 6 rounds. Thanks for playing!" : "";
+  say(`Round complete. Average ${avg}, best ${best}, ${stars} stars.` + (win ? " You're a snap master." : ""));
+  show("end");
+  if (fresh){ S.mastered = true; confetti(); flash(); }
+  return new Promise(res => {
+    $("againBtn").onclick = () => { ensureAC(); res(true); };
+    $("doneBtn").onclick = () => res(false);
+  });
+}
+
+function finishSession(){
+  const total = S.rounds.reduce((n, r) => n + r.scores.length, 0);
+  $("thanksTxt").textContent = `You played ${S.rounds.length} round${S.rounds.length === 1 ? "" : "s"}${total ? " and scored " + total + " attempts" : ""}. Please keep this page open until it says saved.`;
+  show("thanks"); chips();
+}
+
+// ---------- file upload fallback (no scoring) ----------
 function mediaDuration(f){
   return new Promise(res => {
     const u = URL.createObjectURL(f), m = document.createElement(f.type.startsWith("video") ? "video" : "audio");
@@ -315,70 +625,31 @@ function mediaDuration(f){
     m.onerror = () => { URL.revokeObjectURL(u); res(null); };
   });
 }
-
-// ---------- upload ----------
-function b64(blob){
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result).split(",")[1] || "");
-    r.onerror = rej; r.readAsDataURL(blob);
-  });
-}
-async function send(part){
-  const base = part === 1 ? 0 : 3;
-  const statusEl = $("status" + part), bar = $("bar" + part);
-  const btn = $("submit" + part);
-  busy = true; refresh(); btn.disabled = true;
-  statusEl.className = "msg"; statusEl.textContent = "Preparing…";
-  bar.hidden = false; bar.firstElementChild.style.width = "10%";
+$("upFile").addEventListener("change", async ev => {
+  const files = Array.from(ev.target.files || []).slice(0, 3);
+  const msg = $("upMsg"); msg.className = "msg"; msg.textContent = "";
+  if (!files.length) return;
+  if (!formOk()){ msg.textContent = "Add your name and tick both boxes above first, then pick your file again."; msg.className = "msg bad"; ev.target.value = ""; return; }
+  ensureAC(); busy = true; refresh();
   try {
-    if ($("website").value) { // honeypot: pretend success
-      bar.firstElementChild.style.width = "100%"; return true;
-    }
     const clips = [];
-    for (let i = 0; i < 3; i++){
-      const s = slots[base + i];
-      if (!s.blob) continue;
-      clips.push({index: base + i + 1, mime: s.mime, base64: await b64(s.blob), duration_s: s.dur, snap_check: !!s.check});
+    for (const f of files){
+      if (f.size > MAX_BYTES) throw new Error(`"${f.name}" is over 1.5 MB. Please trim it.`);
+      let dur = null, ok = false;
+      try { const a = await decode(f); dur = a.duration; ok = analyze(a); } catch (e) { dur = await mediaDuration(f); }
+      if (dur == null) throw new Error(`Couldn't read "${f.name}".`);
+      if (dur > MAX_UPLOAD_S) throw new Error(`"${f.name}" is longer than 15 seconds.`);
+      clips.push({index: clips.length + 1, blob: f, mime: f.type || "audio/mp4", dur: Math.round(dur*10)/10, check: ok, score: null});
     }
-    bar.firstElementChild.style.width = "35%";
-    statusEl.textContent = "Uploading… please keep this page open.";
-    const payload = {
-      submission_id: submissionId, name: $("name").value.trim().slice(0, 40), consent: true, age_ok: true, clips,
-      ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "",
-      lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, client_ts: new Date().toISOString(), part
-    };
-    if (ENDPOINT.indexOf("PASTE_") === 0) throw new Error("This form isn't connected to a backend yet.");
-    const resp = await fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(payload)});
-    bar.firstElementChild.style.width = "90%";
-    const j = await resp.json();
-    if (!j || !j.ok) throw new Error((j && j.error) || "Server said no.");
-    bar.firstElementChild.style.width = "100%";
-    return true;
-  } catch (e) {
-    statusEl.className = "msg bad";
-    statusEl.textContent = "Upload didn't go through (" + (e.message || "network error") + "). Check your connection and tap the button to retry.";
-    bar.hidden = true;
-    return false;
-  } finally { busy = false; refresh(); }
-}
-
-$("form").addEventListener("submit", async ev => {
-  ev.preventDefault();
-  if (!part1Ready() || busy) return;
-  if (await send(1)) {
-    sent1 = true;
-    $("form").hidden = true; $("thanks").hidden = false;
-    $("thanks").scrollIntoView({behavior:"smooth"});
-  }
-  refresh();
+    const R = {n: 1, clips, scores: [], status: "pending", points: 0, sessionPoints: 0};
+    S.rounds.push(R); chips();
+    msg.textContent = "Uploading…"; msg.className = "msg ok";
+    uploadRound(R);
+    $("thanksTxt").textContent = "Your upload is on its way. Please keep this page open until it says saved.";
+    show("thanks");
+  } catch (e) { msg.textContent = e.message; msg.className = "msg bad"; }
+  busy = false; refresh();
 });
-$("moreBtn").onclick = () => { $("part2").hidden = false; $("moreBtn").hidden = true; $("part2").scrollIntoView({behavior:"smooth"}); };
-$("submit2").onclick = async () => {
-  if (!part2Ready() || busy) return;
-  if (await send(2)) { $("part2").hidden = true; $("thanks").hidden = true; $("done2").hidden = false; }
-};
-refresh();
 </script>
 </body>
 </html>

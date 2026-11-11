@@ -4,7 +4,9 @@
  */
 var FOLDER_NAME = 'Snap Dataset (snap-collect)';
 var SHEET_NAME = 'Snap Dataset — submissions';
-var HEADER = ['received_at', 'submission_id', 'part', 'name', 'n_clips', 'snap_check_flags', 'ua', 'lang', 'tz', 'folder_url'];
+var HEADER = ['received_at', 'submission_id', 'part', 'name', 'n_clips', 'snap_check_flags', 'ua', 'lang', 'tz', 'folder_url', 'round_points', 'session_points', 'show_on_leaderboard', 'match_scores'];
+var MAX_ROUND_POINTS = 11;  // 3 attempts x 2 points + one 5-point streak bonus
+var MAX_ROUNDS = 6;
 var MAX_CLIP_BYTES = 1.5 * 1024 * 1024;
 var MAX_CLIPS = 6;
 
@@ -15,7 +17,37 @@ function setup() {
 }
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'leaderboard') return json_(leaderboard_());
   return json_({ ok: true, service: 'snap-collect' });
+}
+
+// Top 10 sessions by points, opted-in players only. Points are computed in the
+// browser, so the server caps them per round and counts at most MAX_ROUNDS rounds.
+function leaderboard_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('leaderboard');
+  if (hit) return JSON.parse(hit);
+  var sheet = getResources_().sheet;
+  var rows = sheet.getDataRange().getValues();
+  var head = rows.shift() || [];
+  var c = {}; head.forEach(function (h, i) { c[h] = i; });
+  if (c.round_points === undefined) return { ok: true, top: [], updated_at: new Date().toISOString() };
+  var by = {};
+  rows.forEach(function (r) {
+    var id = r[c.submission_id];
+    if (!id || r[c.show_on_leaderboard] !== true) return;
+    var s = by[id] || (by[id] = { name: String(r[c.name] || '').replace(/^'/, '').slice(0, 24), points: 0, rounds: {} });
+    var part = Number(r[c.part]) || 1;
+    if (part > MAX_ROUNDS || s.rounds[part]) return;
+    s.rounds[part] = true;
+    s.points += Math.max(0, Math.min(MAX_ROUND_POINTS, Number(r[c.round_points]) || 0));
+  });
+  var top = Object.keys(by).map(function (k) { return { name: by[k].name, points: by[k].points }; })
+    .filter(function (x) { return x.points > 0; })
+    .sort(function (a, b) { return b.points - a.points; }).slice(0, 10);
+  var out = { ok: true, top: top, updated_at: new Date().toISOString() };
+  cache.put('leaderboard', JSON.stringify(out), 20);
+  return out;
 }
 
 function doPost(e) {
@@ -64,17 +96,30 @@ function doPost(e) {
       flags.push(c.index + ':' + (c.check === false ? 'false' : 'true'));
     });
 
+    ensureHeader_(r.sheet);
+    var scores = clips.map(function (c) { return (typeof c.match_score === 'number') ? Math.round(c.match_score) : ''; }).join(',');
     r.sheet.appendRow([
       new Date(), id, d.part || 1, name, decoded.length, flags.join(','),
       String(d.ua || '').slice(0, 300), String(d.lang || '').slice(0, 20),
-      String(d.tz || '').slice(0, 60), sub.getUrl()
+      String(d.tz || '').slice(0, 60), sub.getUrl(),
+      Math.max(0, Math.min(MAX_ROUND_POINTS, parseInt(d.round_points, 10) || 0)),
+      Math.max(0, parseInt(d.session_points, 10) || 0),
+      d.show_on_leaderboard === true, scores
     ]);
+    CacheService.getScriptCache().remove('leaderboard');
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });
   } finally {
     if (locked) lock.releaseLock();
   }
+}
+
+// Sheets created before the game version have the old 10-column header; extend it once.
+function ensureHeader_(sheet) {
+  var n = sheet.getLastColumn();
+  if (n >= HEADER.length) return;
+  sheet.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
 }
 
 function ext_(mime) {
