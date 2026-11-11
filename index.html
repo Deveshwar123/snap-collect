@@ -76,8 +76,8 @@ canvas.spark{width:100%;max-width:320px;height:56px;display:block;margin:6px aut
       <label class="f" for="name">Name or nickname</label>
       <input type="text" id="name" maxlength="40" required autocomplete="off" autocapitalize="words">
       <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
-      <label class="chk"><input type="checkbox" id="consent" required><span>I agree my snap recordings can be used to train a finger-snap detector for a personal project. I can ask for them to be deleted anytime by DM.</span></label>
-      <label class="chk"><input type="checkbox" id="age" required><span>I'm 13 or older</span></label>
+      <label class="chk"><input type="checkbox" id="consent" required><span>I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--acc)">Terms &amp; Conditions</a></span></label>
+      <label class="chk"><input type="checkbox" id="age" required><span>I'm 13 or older (under 18: with a parent's OK)</span></label>
       <label class="chk"><input type="checkbox" id="lbOpt" checked><span>Show my nickname on the leaderboard<br><small class="mut">Only your nickname and points are shown</small></span></label>
     </div>
     <button type="submit" class="pri" id="startBtn" disabled>Start</button>
@@ -134,7 +134,6 @@ canvas.spark{width:100%;max-width:320px;height:56px;display:block;margin:6px aut
   <div style="text-align:center"><button type="button" id="chip3" class="chip" hidden></button></div>
 </section>
 
-<p class="note">Your snaps help train a finger-snap detector (personal project). The match score is just for fun.</p>
 </main>
 
 <script>
