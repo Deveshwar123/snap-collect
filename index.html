@@ -82,7 +82,6 @@ canvas.spark{width:100%;max-width:320px;height:56px;display:block;margin:6px aut
     </div>
     <button type="submit" class="pri" id="startBtn" disabled>Start</button>
   </form>
-  <section class="card lb" id="lbBox1" hidden><strong>&#x1F3C6; Leaderboard</strong><ol id="lbList1"></ol></section>
   <div class="card" style="margin-top:14px">
     <details id="upBox">
       <summary>Upload a recording instead</summary>
@@ -475,7 +474,7 @@ async function loadLB(){
     const j = await resp.json();
     if (!j || !j.ok || !Array.isArray(j.top) || !j.top.length) throw new Error("none");
     const me = $("name").value.trim().toLowerCase();
-    ["1","2"].forEach(k => {
+    ["2"].forEach(k => {  // the leaderboard is only shown after the player has snapped
       const ol = $("lbList" + k); ol.textContent = "";
       j.top.slice(0, LB_TOP).forEach(e => {
         const li = document.createElement("li"), nm = document.createElement("span"), p = document.createElement("span");
@@ -485,9 +484,9 @@ async function loadLB(){
       });
       $("lbBox" + k).hidden = false;
     });
-  } catch (e) { $("lbBox1").hidden = true; $("lbBox2").hidden = true; }
+  } catch (e) { $("lbBox2").hidden = true; }
 }
-loadLB();
+// No fetch on page load: the board appears on the end-of-round screen only.
 
 // ---------- game ----------
 function tap(label, sec){ // resolves when the main button is tapped
