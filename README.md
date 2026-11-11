@@ -31,6 +31,7 @@ Then publish the folder via GitHub Pages.
 
 ## Notes
 
+- Recording is lossless 16-bit mono WAV through Web Audio (about 290 KB per 3 s clip at 48 kHz), so the snap's sharp attack is not smeared by a codec and every phone delivers the same format. If a browser's audio graph never delivers samples, the page falls back to MediaRecorder (WebM/Opus or MP4/AAC) before the "Snap!" cue.
 - Clips are limited to 1.5 MB each; uploaded files to 15 s. The server re-checks size and clip count (max 6).
 - The honeypot field `website` is hidden; if filled, the page pretends success and sends nothing.
 - Anyone with the URL can post, so the Drive folder will grow only as fast as people submit; delete rows/folders on request (consent text promises deletion by DM).
