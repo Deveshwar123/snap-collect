@@ -312,7 +312,7 @@ async function recordPCM(stream){
   node.onaudioprocess = e => { ticks++; if (on) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
   src.connect(node); node.connect(c.destination); // outputs silence; Chrome only runs connected processors
   try {
-    for (const t of ["Click…","Ready…"]) { $("count").textContent = t; await sleep(900); }
+    for (const t of ["3","2","1"]) { $("count").textContent = t; await sleep(800); }
     if (!ticks) return null;
     $("count").textContent = "Snap!";
     on = true; await sleep(REC_S * 1000); on = false;
@@ -336,7 +336,7 @@ async function recordClip(){ // countdown + 3.0 s recording; always stops mic tr
     const chunks = [];
     rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
     const stopped = new Promise(res => rec.onstop = res);
-    for (const c of ["Click…","Ready…"]) { $("count").textContent = c; await sleep(900); }
+    for (const c of ["3","2","1"]) { $("count").textContent = c; await sleep(800); }
     $("count").textContent = "Snap!";
     rec.start();
     await sleep(REC_S * 1000);
