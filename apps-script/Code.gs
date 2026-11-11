@@ -36,13 +36,17 @@ function leaderboard_() {
   rows.forEach(function (r) {
     var id = r[c.submission_id];
     if (!id || r[c.show_on_leaderboard] !== true) return;
-    var s = by[id] || (by[id] = { name: String(r[c.name] || '').replace(/^'/, '').slice(0, 24), points: 0, rounds: {} });
+    var s = by[id] || (by[id] = { name: String(r[c.name] || '').replace(/^'/, '').slice(0, 24), parts: {} });
     var part = Number(r[c.part]) || 1;
-    if (part > MAX_ROUNDS || s.rounds[part]) return;
-    s.rounds[part] = true;
-    s.points += Math.max(0, Math.min(MAX_ROUND_POINTS, Number(r[c.round_points]) || 0));
+    if (part > MAX_ROUNDS) return;
+    // Snaps are uploaded one at a time, so a round arrives as several rows: sum them, capped per round.
+    var add = Math.max(0, Number(r[c.round_points]) || 0);
+    s.parts[part] = Math.min(MAX_ROUND_POINTS, (s.parts[part] || 0) + add);
   });
-  var top = Object.keys(by).map(function (k) { return { name: by[k].name, points: by[k].points }; })
+  var top = Object.keys(by).map(function (k) {
+    var pts = 0; for (var p in by[k].parts) pts += by[k].parts[p];
+    return { name: by[k].name, points: pts };
+  })
     .filter(function (x) { return x.points > 0; })
     .sort(function (a, b) { return b.points - a.points; }).slice(0, 10);
   var out = { ok: true, top: top, updated_at: new Date().toISOString() };

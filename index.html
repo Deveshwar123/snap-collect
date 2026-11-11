@@ -303,7 +303,7 @@ async function recordClip(){ // countdown + 3.0 s recording; always stops mic tr
     const chunks = [];
     rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
     const stopped = new Promise(res => rec.onstop = res);
-    for (const c of ["3","2","1"]) { $("count").textContent = c; await sleep(800); }
+    for (const c of ["Click…","Ready…"]) { $("count").textContent = c; await sleep(900); }
     $("count").textContent = "Snap!";
     rec.start();
     await sleep(REC_S * 1000);
@@ -316,7 +316,7 @@ async function recordClip(){ // countdown + 3.0 s recording; always stops mic tr
 }
 
 // ---------- session state ----------
-const S = {target:null, rounds:[], clipIdx:0, streak:0, mastered:false, points:0};
+const S = {target:null, rounds:[], uploads:[], clipIdx:0, streak:0, mastered:false, points:0};
 try { S.streak = parseInt(sessionStorage.getItem("snapStreak") || "0", 10) || 0; } catch (e) {}
 function saveStreak(){ try { sessionStorage.setItem("snapStreak", String(S.streak)); } catch (e) {} }
 function show(id){ ["start","stage","end","thanks"].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); }
@@ -446,6 +446,12 @@ async function postRound(R){
   if (!j || !j.ok) throw new Error((j && j.error) || "Server said no.");
   return true;
 }
+// Each snap is uploaded on its own right after it is recorded, so leaving
+// mid-round still keeps every snap made so far.
+function saveClip(R, clip, points){
+  const U = {n: R.n, clips: [clip], points, sessionPoints: S.points, status: "pending"};
+  S.uploads.push(U); chips(); uploadRound(U);
+}
 async function uploadRound(R){ // background; never blocks the UI
   if (R.status === "sending" || R.status === "retry") return;
   R.status = "sending"; chips();
@@ -456,7 +462,7 @@ async function uploadRound(R){ // background; never blocks the UI
   R.status = "failed"; chips();
 }
 function chips(){
-  const st = S.rounds.map(r => r.status);
+  const st = S.uploads.map(r => r.status);
   let txt = "", cls = "chip", on = st.length > 0;
   if (st.includes("failed")) { txt = "not saved: tap to retry"; cls += " bad"; }
   else if (st.includes("retry")) txt = "retrying…";
@@ -464,7 +470,7 @@ function chips(){
   else { txt = "saved ✓"; cls += " ok"; }
   ["chip","chip2","chip3"].forEach(id => { const c = $(id); c.hidden = !on; c.textContent = txt; c.className = cls; });
 }
-["chip","chip2","chip3"].forEach(id => $(id).onclick = () => S.rounds.filter(r => r.status === "failed").forEach(uploadRound));
+["chip","chip2","chip3"].forEach(id => $(id).onclick = () => S.uploads.filter(r => r.status === "failed").forEach(uploadRound));
 
 // ---------- leaderboard (GET, names via textContent only) ----------
 async function loadLB(){
@@ -546,7 +552,7 @@ async function playRound(){
     $("ringLab").textContent = S.target ? "Match the target" : "";
     $("ringBox").hidden = !S.target;
     if (S.target){ drawRing(null, 1); drawSpark(null); }
-    let res, label = isTarget ? "Record your target snap" : "Ready, snap!";
+    let res, label = isTarget ? "Record your target snap" : "Next snap";
     for (;;){
       await tap(label);
       $("gmsg").textContent = ""; $("score").hidden = true; setVerdict("");
@@ -556,7 +562,7 @@ async function playRound(){
     }
     const clip = {index: ++S.clipIdx, mime: res.mime, blob: res.blob, dur: REC_S, check: true, score: null};
     if (isTarget){
-      S.target = res.feat; R.clips.push(clip);
+      S.target = res.feat; R.clips.push(clip); saveClip(R, clip, 0);
       $("ringBox").hidden = false; $("ringLab").textContent = "Your target snap"; $("legAtt").hidden = true;
       await animateRing(null); drawSpark(null);
       setVerdict("Target locked in", "");
@@ -576,12 +582,12 @@ async function playRound(){
       $("ptsEl").textContent = (pts + bonus) ? "+" + (pts + bonus) + (bonus ? " (incl. +" + bonus + " streak bonus!)" : "") : "";
       $("total").textContent = S.points + " pts";
       say(`Score ${sc}. ${vt}.` + (pts + bonus ? ` Plus ${pts + bonus} points.` : ""));
+      saveClip(R, clip, pts + bonus);
       if (sc >= 90){ confetti(); flash(); try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} }
     }
     await tap(i < SNAPS_PER_ROUND ? "Next" : "See results");
   }
-  R.sessionPoints = S.points;
-  uploadRound(R); // fire and forget
+  R.sessionPoints = S.points;  // every snap was already saved as it was recorded
   return "ok";
 }
 
@@ -640,7 +646,7 @@ $("upFile").addEventListener("change", async ev => {
       clips.push({index: clips.length + 1, blob: f, mime: f.type || "audio/mp4", dur: Math.round(dur*10)/10, check: ok, score: null});
     }
     const R = {n: 1, clips, scores: [], status: "pending", points: 0, sessionPoints: 0};
-    S.rounds.push(R); chips();
+    S.rounds.push(R); S.uploads.push(R); chips();
     msg.textContent = "Uploading…"; msg.className = "msg ok";
     uploadRound(R);
     $("thanksTxt").textContent = "Your upload is on its way. Please keep this page open until it says saved.";
