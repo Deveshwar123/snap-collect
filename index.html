@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Help train a finger-snap detector</title>
+<style>
+:root{--bg:#f6f6f8;--card:#fff;--fg:#16161a;--mut:#5a5a66;--line:#d6d6de;--acc:#4f46e5;--accfg:#fff;--ok:#127a3d;--bad:#b3261e;--warn:#fff3cd;--warnfg:#5c4400}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0f13;--card:#1a1a21;--fg:#f2f2f6;--mut:#a5a5b3;--line:#35353f;--acc:#8b85ff;--accfg:#0f0f13;--ok:#4cd98a;--bad:#ff8a80;--warn:#3a2f0a;--warnfg:#ffe08a}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:max(16px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
+main{max-width:520px;margin:0 auto}
+h1{font-size:1.6rem;line-height:1.2;margin:8px 0 6px}
+.sub{color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+label.f{display:block;font-weight:600;margin-bottom:6px}
+input[type=text]{width:100%;min-height:48px;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.chk{display:flex;gap:12px;align-items:flex-start;padding:10px 0;min-height:44px;font-size:.95rem}
+.chk input{width:28px;height:28px;flex:none;margin:0;accent-color:var(--acc)}
+button,.btn{font:inherit;font-weight:600;min-height:48px;min-width:48px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent}
+button.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.slot{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--bg)}
+.slot.done{border-color:var(--ok)}
+.slot h3{margin:0 0 8px;font-size:1rem;display:flex;justify-content:space-between;align-items:center}
+.slot .tick{color:var(--ok);font-size:1.3rem}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>button{flex:1 1 120px}
+.big{font-size:2.4rem;font-weight:800;text-align:center;padding:6px 0;color:var(--acc)}
+.msg{font-size:.92rem;margin:8px 0 0}
+.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.banner{background:var(--warn);color:var(--warnfg);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:600}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.mut{color:var(--mut);font-size:.9rem}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+[hidden]{display:none!important}
+details summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<h1>Help train a finger-snap detector &#x1FAF0;</h1>
+<p class="sub">A personal project. Takes 1 minute: record 3 finger snaps.</p>
+
+<div id="igBanner" class="banner" role="alert" hidden>Instagram's browser can't use the microphone. Tap &#x22EF; (top right) &rarr; Open in browser.</div>
+<div id="micBanner" class="banner" role="alert" hidden></div>
+
+<form id="form" novalidate autocomplete="off">
+  <div class="card">
+    <label class="f" for="name">Name or nickname</label>
+    <input type="text" id="name" maxlength="40" required autocomplete="off" autocapitalize="words">
+    <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+    <label class="chk"><input type="checkbox" id="consent" required><span>I agree my snap recordings can be used to train a finger-snap detector for a personal project. I can ask for them to be deleted anytime by DM.</span></label>
+    <label class="chk"><input type="checkbox" id="age" required><span>I'm 13 or older</span></label>
+  </div>
+
+  <div class="card" id="part1">
+    <div id="slots1"></div>
+    <details id="upBox">
+      <summary>Upload a recording instead</summary>
+      <p class="mut">Pick up to 3 short audio/video files, or one file with 3 snaps (max 15 s, 1.5 MB each).</p>
+      <input type="file" id="upFile" accept="audio/*,video/*" multiple aria-label="Upload a recording instead">
+      <p class="msg" id="upMsg" role="status"></p>
+    </details>
+  </div>
+
+  <div class="card">
+    <button type="submit" class="pri" id="submit1" style="width:100%" disabled>Submit my snaps</button>
+    <div class="bar" id="bar1" hidden><i></i></div>
+    <p class="msg" id="status1" role="status" aria-live="polite"></p>
+  </div>
+</form>
+
+<section id="thanks" class="card" hidden>
+  <h2 style="margin-top:0">Thanks! &#x1F64C;</h2>
+  <p class="mut">Got 10 more seconds? Add 3 more snaps (optional).</p>
+  <button type="button" id="moreBtn" class="pri" style="width:100%">Add 3 more snaps</button>
+</section>
+
+<section id="part2" class="card" hidden>
+  <div id="slots2"></div>
+  <button type="button" id="submit2" class="pri" style="width:100%" disabled>Submit 3 more</button>
+  <div class="bar" id="bar2" hidden><i></i></div>
+  <p class="msg" id="status2" role="status" aria-live="polite"></p>
+</section>
+
+<section id="done2" class="card" hidden><h2 style="margin:0">Thanks again! &#x1F64C;</h2></section>
+</main>
+
+<script>
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbzEXqY2EdT8jIxfJ7chIA4r0LmKkDWbuJvtJQ8fIimfYCH58SK-56D8GhN-mdv27WrZBA/exec";
+
+const MAX_BYTES = 1.5 * 1024 * 1024, MAX_UPLOAD_S = 15, REC_S = 3;
+const IN_IG = /Instagram/i.test(navigator.userAgent);
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const submissionId = (crypto.randomUUID ? crypto.randomUUID() :
+  "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c=="x"?r:(r&3|8)).toString(16); }));
+
+// slots: 0-2 part 1, 3-5 part 2. {blob,mime,dur,check,done,covered,url}
+const slots = Array.from({length: 6}, () => ({done:false}));
+let busy = false, ac = null, sent1 = false;
+const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
+
+function ensureAC(){ // must be called inside a user gesture (iOS)
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return null;
+  if (!ac) ac = new C();
+  if (ac.state === "suspended") ac.resume();
+  return ac;
+}
+
+// ---------- UI build ----------
+function buildSlots(container, start){
+  for (let i = 0; i < 3; i++){
+    const n = start + i;
+    const d = document.createElement("div");
+    d.className = "slot"; d.id = "slot" + n;
+    d.innerHTML = `<h3><span>Snap ${n+1}</span><span class="tick" hidden aria-label="Snap detected">&#10003;</span></h3>
+      <div class="big" hidden aria-live="assertive"></div>
+      <div class="row">
+        <button type="button" class="rec pri">Record</button>
+        <button type="button" class="play" hidden>&#9654; Play</button>
+        <button type="button" class="redo" hidden>Redo</button>
+      </div>
+      <div class="row keepRow" hidden><button type="button" class="keep">Keep anyway</button></div>
+      <p class="msg" role="status"></p>`;
+    container.appendChild(d);
+    d.querySelector(".rec").onclick = () => record(n);
+    d.querySelector(".redo").onclick = () => record(n);
+    d.querySelector(".play").onclick = () => play(n);
+    d.querySelector(".keep").onclick = () => keepAnyway(n);
+  }
+}
+buildSlots($("slots1"), 0);
+buildSlots($("slots2"), 3);
+
+function ui(n){
+  const d = $("slot" + n), s = slots[n];
+  d.classList.toggle("done", !!s.done);
+  d.querySelector(".tick").hidden = !(s.done && s.check);
+  d.querySelector(".play").hidden = !s.blob;
+  d.querySelector(".redo").hidden = !(s.blob || s.covered);
+  d.querySelector(".rec").hidden = !!(s.blob || s.covered);
+  d.querySelector(".keepRow").hidden = !(s.blob && !s.done);
+  if (s.covered){ setMsg(n, "Covered by your uploaded file.", "ok"); }
+  refresh();
+}
+function setMsg(n, t, cls){ const m = $("slot" + n).querySelector(".msg"); m.textContent = t || ""; m.className = "msg " + (cls || ""); }
+function setBig(n, t){ const b = $("slot" + n).querySelector(".big"); b.hidden = !t; b.textContent = t || ""; }
+function lockButtons(on){ document.querySelectorAll(".slot button").forEach(b => { if (on) b.disabled = true; else b.disabled = false; }); }
+
+function part1Ready(){ return $("name").value.trim() && $("consent").checked && $("age").checked && slots.slice(0,3).every(s => s.done); }
+function part2Ready(){ return slots.slice(3).every(s => s.done); }
+function refresh(){
+  $("submit1").disabled = busy || sent1 || !part1Ready();
+  $("submit2").disabled = busy || !part2Ready();
+}
+["name","consent","age"].forEach(id => $(id).addEventListener("input", refresh));
+
+// ---------- banners ----------
+if (IN_IG) $("igBanner").hidden = false;
+function micProblem(msg){
+  const b = $("micBanner");
+  b.textContent = msg; b.hidden = false;
+  $("upBox").open = true;
+}
+if (!hasMic){
+  if (IN_IG) { /* IG banner already shown */ }
+  else micProblem("This browser can't record audio. Use \"Upload a recording instead\" below.");
+  document.querySelectorAll(".rec").forEach(b => b.disabled = true);
+}
+
+// ---------- recording ----------
+function pickMime(){
+  const c = ["audio/webm;codecs=opus", "audio/mp4"];
+  for (const m of c) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+  return "";
+}
+
+async function record(n){
+  if (busy) return;
+  ensureAC(); // inside gesture
+  busy = true; lockButtons(true);
+  const s = slots[n];
+  let stream = null;
+  try {
+    setMsg(n, "");
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    } catch (e) {
+      try { stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+      catch (e2) { throw Object.assign(new Error("mic"), {mic:true, name:e2.name}); }
+    }
+    const mt = pickMime();
+    const rec = new MediaRecorder(stream, mt ? {mimeType: mt} : undefined);
+    const chunks = [];
+    rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    const stopped = new Promise(res => rec.onstop = res);
+    for (const c of ["3","2","1"]) { setBig(n, c); await sleep(800); }
+    setBig(n, "Snap now!");
+    rec.start();
+    await sleep(REC_S * 1000);
+    if (rec.state !== "inactive") rec.stop();
+    await stopped;
+    setBig(n, "");
+    const mime = rec.mimeType || mt || (chunks[0] && chunks[0].type) || "audio/mp4";
+    const blob = new Blob(chunks, {type: mime});
+    if (revoke(s)) {}
+    Object.assign(s, {blob, mime, dur: REC_S, covered:false, done:false, check:false, url:URL.createObjectURL(blob)});
+    if (blob.size > MAX_BYTES) { slots[n] = {done:false}; ui(n); setMsg(n, "Recording too large. Try again.", "bad"); return; }
+    setMsg(n, "Checking…");
+    const ok = await detectSnap(blob).catch(() => false);
+    s.check = ok;
+    if (ok) { s.done = true; setMsg(n, "Snap detected!", "ok"); }
+    else setMsg(n, "Didn't catch a snap — try again a bit closer", "bad");
+    ui(n);
+  } catch (e) {
+    setBig(n, "");
+    if (e.mic) {
+      const denied = e.name === "NotAllowedError" || e.name === "SecurityError";
+      micProblem(IN_IG ? "Instagram's browser can't use the microphone. Tap ⋯ (top right) → Open in browser."
+        : denied ? "Microphone access was blocked. Allow it in your browser settings, or use \"Upload a recording instead\"."
+        : "Couldn't use the microphone. Try \"Upload a recording instead\" below.");
+      setMsg(n, "Microphone unavailable.", "bad");
+    } else setMsg(n, "Recording failed. Please try again.", "bad");
+  } finally {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    busy = false; lockButtons(false); ui(n);
+  }
+}
+function revoke(s){ if (s.url) { URL.revokeObjectURL(s.url); return true; } return false; }
+
+function keepAnyway(n){
+  const s = slots[n]; if (!s.blob) return;
+  s.done = true; s.check = false;
+  setMsg(n, "Kept (no snap detected).", "");
+  ui(n);
+}
+
+let playing = null;
+function play(n){
+  const s = slots[n]; if (!s.url) return;
+  if (playing) { playing.pause(); }
+  playing = new Audio(s.url);
+  playing.play().catch(() => setMsg(n, "Can't play this on your device.", "bad"));
+}
+
+// ---------- snap detection ----------
+async function decode(blob){
+  const c = ensureAC();
+  if (!c) throw new Error("no AudioContext");
+  const buf = await blob.arrayBuffer();
+  return await new Promise((res, rej) => {
+    const p = c.decodeAudioData(buf, res, rej); // callback form for old Safari
+    if (p && p.catch) p.catch(rej);
+  });
+}
+function analyze(audio){
+  const x = audio.getChannelData(0), sr = audio.sampleRate;
+  const fl = Math.max(1, Math.round(sr * 0.005));
+  const nF = Math.floor(x.length / fl);
+  const en = new Float32Array(nF), pk = new Float32Array(nF);
+  for (let f = 0; f < nF; f++){
+    let sum = 0, p = 0;
+    for (let i = f*fl; i < (f+1)*fl; i++){ const v = x[i]; sum += v*v; const a = Math.abs(v); if (a > p) p = a; }
+    en[f] = sum / fl; pk[f] = p;
+  }
+  const W = 20; // 100 ms of 5 ms frames
+  const ratio = Math.pow(10, 1.2); // 12 dB in power
+  for (let f = 5; f < nF; f++){
+    const prev = Array.from(en.subarray(Math.max(0, f-W), f)).sort((a,b) => a-b);
+    const med = prev[prev.length >> 1];
+    if (en[f] >= ratio * (med + 1e-10) && pk[f] > 0.05) return true;
+  }
+  return false;
+}
+async function detectSnap(blob){ return analyze(await decode(blob)); }
+
+// ---------- file upload fallback ----------
+$("upFile").addEventListener("change", async ev => {
+  const files = Array.from(ev.target.files || []).slice(0, 3);
+  const msg = $("upMsg"); msg.className = "msg"; msg.textContent = "";
+  if (!files.length) return;
+  ensureAC();
+  busy = true; refresh();
+  try {
+    const out = [];
+    for (const f of files){
+      if (f.size > MAX_BYTES) throw new Error(`"${f.name}" is over 1.5 MB. Please trim it.`);
+      let dur = null, ok = false;
+      try { const a = await decode(f); dur = a.duration; ok = analyze(a); } catch (e) { dur = await mediaDuration(f); }
+      if (dur == null) throw new Error(`Couldn't read "${f.name}".`);
+      if (dur > MAX_UPLOAD_S) throw new Error(`"${f.name}" is longer than 15 seconds.`);
+      out.push({blob:f, mime:f.type || "audio/mp4", dur:Math.round(dur*10)/10, check:ok});
+    }
+    for (let i = 0; i < 3; i++){ revoke(slots[i]); slots[i] = {done:false}; }
+    out.forEach((o, i) => { slots[i] = {...o, done:true, url:URL.createObjectURL(o.blob)}; });
+    if (out.length === 1) { slots[1] = {done:true, covered:true}; slots[2] = {done:true, covered:true}; }
+    else for (let i = out.length; i < 3; i++) slots[i] = {done:true, covered:true}; // fewer files than slots
+    for (let i = 0; i < 3; i++) { ui(i); setMsg(i, slots[i].covered ? "Covered by your uploaded file(s)." : "Uploaded.", "ok"); }
+    msg.textContent = "Loaded " + out.length + " file(s)."; msg.className = "msg ok";
+  } catch (e) { msg.textContent = e.message; msg.className = "msg bad"; }
+  busy = false; refresh();
+});
+function mediaDuration(f){
+  return new Promise(res => {
+    const u = URL.createObjectURL(f), m = document.createElement(f.type.startsWith("video") ? "video" : "audio");
+    m.preload = "metadata"; m.src = u;
+    m.onloadedmetadata = () => { URL.revokeObjectURL(u); res(isFinite(m.duration) ? m.duration : null); };
+    m.onerror = () => { URL.revokeObjectURL(u); res(null); };
+  });
+}
+
+// ---------- upload ----------
+function b64(blob){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] || "");
+    r.onerror = rej; r.readAsDataURL(blob);
+  });
+}
+async function send(part){
+  const base = part === 1 ? 0 : 3;
+  const statusEl = $("status" + part), bar = $("bar" + part);
+  const btn = $("submit" + part);
+  busy = true; refresh(); btn.disabled = true;
+  statusEl.className = "msg"; statusEl.textContent = "Preparing…";
+  bar.hidden = false; bar.firstElementChild.style.width = "10%";
+  try {
+    if ($("website").value) { // honeypot: pretend success
+      bar.firstElementChild.style.width = "100%"; return true;
+    }
+    const clips = [];
+    for (let i = 0; i < 3; i++){
+      const s = slots[base + i];
+      if (!s.blob) continue;
+      clips.push({index: base + i + 1, mime: s.mime, base64: await b64(s.blob), duration_s: s.dur, snap_check: !!s.check});
+    }
+    bar.firstElementChild.style.width = "35%";
+    statusEl.textContent = "Uploading… please keep this page open.";
+    const payload = {
+      submission_id: submissionId, name: $("name").value.trim().slice(0, 40), consent: true, age_ok: true, clips,
+      ua: navigator.userAgent, platform: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "",
+      lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, client_ts: new Date().toISOString(), part
+    };
+    if (ENDPOINT.indexOf("PASTE_") === 0) throw new Error("This form isn't connected to a backend yet.");
+    const resp = await fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(payload)});
+    bar.firstElementChild.style.width = "90%";
+    const j = await resp.json();
+    if (!j || !j.ok) throw new Error((j && j.error) || "Server said no.");
+    bar.firstElementChild.style.width = "100%";
+    return true;
+  } catch (e) {
+    statusEl.className = "msg bad";
+    statusEl.textContent = "Upload didn't go through (" + (e.message || "network error") + "). Check your connection and tap the button to retry.";
+    bar.hidden = true;
+    return false;
+  } finally { busy = false; refresh(); }
+}
+
+$("form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  if (!part1Ready() || busy) return;
+  if (await send(1)) {
+    sent1 = true;
+    $("form").hidden = true; $("thanks").hidden = false;
+    $("thanks").scrollIntoView({behavior:"smooth"});
+  }
+  refresh();
+});
+$("moreBtn").onclick = () => { $("part2").hidden = false; $("moreBtn").hidden = true; $("part2").scrollIntoView({behavior:"smooth"}); };
+$("submit2").onclick = async () => {
+  if (!part2Ready() || busy) return;
+  if (await send(2)) { $("part2").hidden = true; $("thanks").hidden = true; $("done2").hidden = false; }
+};
+refresh();
+</script>
+</body>
+</html>
